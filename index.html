@@ -1,10 +1,17 @@
-/* Recipe Preview CSS */
-.recipe-preview {
-    z-index: 50;  /* Updated from 40 to 50 */
-}
+function showRecipePreview(event) {
+    var tooltip = document.getElementById('recipe-tooltip');
+    var card = event.currentTarget;
+    var rect = card.getBoundingClientRect();
 
-/* Recipe Card Rendering Adjustments */
-.recipe-card {
-    position: relative; /* Ensure proper layering with the recipe preview */
-    z-index: 40; /* Set lower than recipe preview to maintain layering */
+    // Calculate position for the tooltip
+    var tooltipTop = rect.bottom + window.scrollY + 5; // by default, place below the card
+    if (tooltipTop + tooltip.offsetHeight > window.innerHeight) { 
+        // If there is not enough space below, position above
+        tooltipTop = rect.top + window.scrollY - tooltip.offsetHeight - 5;
+    }
+
+    tooltip.style.top = tooltipTop + 'px';
+    tooltip.style.left = (rect.left + window.scrollX) + 'px';
+    tooltip.style.zIndex = '1000'; // Ensure tooltip is above all elements
+    tooltip.style.display = 'block';
 }
