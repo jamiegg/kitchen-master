@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kitchen Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eefbf5', 100: '#d6f5e6', 200: '#b0ead1', 300: '#7cd9b6', 400: '#48c196', 500: '#25a67a', 600: '#178762', 700: '#136c51', 800: '#125642', 900: '#104737', 950: '#07281f' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { background-color: #f0f2f5; color: #1a1a2e; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+        
+        /* Dark Mode */
+        .dark body { background-color: #0f172a; color: #f8fafc; }
+        .dark .card, .dark .sheet, .dark .sticky-header, .dark .app-shell, .dark .mobile-nav, .dark .desktop-sidebar { background-color: #1e293b !important; border-color: #334155 !important; color: #f8fafc; }
+        .dark .input, .dark select, .dark textarea { background-color: #334155 !important; border-color: transparent !important; color: white !important; }
+        .dark .bg-gray-50, .dark .bg-gray-100 { background-color: #334155 !important; color: #cbd5e1 !important; }
+
+        .material-symbols-rounded { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+        .page { display: none; opacity: 0; transition: opacity 0.25s ease; }
+        .page.active { display: flex; flex-direction: column; opacity: 1; }
+        
+        .card { background: white; border-radius: 1rem; border: 1px solid #e5e7eb; transition: all 0.15s ease; }
+        
+        /* Green Box Selection Fix */
+        .card-selected { background: #1a1a2e !important; color: white !important; border-color: #25a67a !important; box-shadow: 0 0 0 2px #25a67a; }
+        .dark .card-selected { background: #1e293b !important; color: #f8fafc !important; border-color: #25a67a !important; box-shadow: 0 0 0 2px #25a67a; }
+
+        /* Recipe Hover Preview */
+        .recipe-preview { 
+            position: fixed; 
+            background: white; 
+            border-radius: 0.875rem; 
+            border: 1px solid #e5e7eb; 
+            padding: 1rem; 
+            min-width: 220px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            z-index: 1000; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            pointer-events: none;
+            display: none;
+        }
+        .dark .recipe-preview { background-color: #1e293b; border-color: #334155; }
+        .recipe-preview-title { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+        .recipe-preview-item { font-size: 13px; font-weight: 500; color: #334155; padding: 4px 0; display: flex; justify-content: space-between; }
+        .dark .recipe-preview-item { color: #cbd5e1; }
+
+        /* Store Mode Styles */
+        .store-mode-active #shopContent { background: linear-gradient(135deg, #f0f2f5 0%, #e8ecf0 100%); }
+        .store-mode-active .shop-item { 
+            padding: 1.5rem !important; 
+            border-radius: 1.25rem !important; 
+            margin-bottom: 1rem !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            border: 2px solid transparent !important;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .store-mode-active .shop-item:active { transform: scale(0.98); }
+        .store-mode-active .shop-item.checked { 
+            background: #e8f5e9 !important; 
+            border-color: #4caf50 !important;
+            opacity: 1 !important;
+        }
+        .store-mode-active .item-name { 
+            font-size: 1.125rem !important; 
+            font-weight: 700 !important;
+        }
+        .store-mode-active input[type="checkbox"] { 
+            width: 1.75rem !important; 
+            height: 1.75rem !important; 
+            cursor: pointer !important;
+            min-width: 1.75rem;
+        }
+        .store-mode-active .shop-item > div:first-child { gap: 1.25rem !important; }
+        .store-mode-active .shop-item > span { 
+            font-size: 0.875rem !important; 
+            padding: 0.75rem 1rem !important;
+            border-radius: 0.75rem !important;
+            font-weight: 700 !important;
+        }
+        .store-mode-active #storeModeBtn { background: #25a67a !important; }
+        .dark .store-mode-active #shopContent { background: linear-gradient(135deg, #0f172a 0%, #1a2f3a 100%); }
+        .dark .store-mode-active .shop-item { background-color: #1e293b !important; }
+        .dark .store-mode-active .shop-item.checked { background: #1b5e20 !important; }
+
+        /* Modal Sheets */
+        .sheet-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 100; }
+        .sheet-overlay.open { display: flex; justify-content: center; align-items: flex-end; }
+        .sheet { background: white; width: 100%; max-width: 520px; max-height: 90vh; border-radius: 1.5rem 1.5rem 0 0; animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1); overflow-y: auto; }
+        
+        @keyframes sheetUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (min-width: 1024px) {
+            .sheet-overlay.open { align-items: center; padding: 2rem; }
+            .sheet { border-radius: 1.5rem; }
+            .app-shell { display: grid; grid-template-columns: 320px 1fr; max-width: 1200px; margin: 2rem auto; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+            .desktop-sidebar { display: flex !important; }
+            .mobile-nav { display: none; }
+            .store-mode-active .shop-item { padding: 1.25rem !important; }
+            .store-mode-active .item-name { font-size: 1rem !important; }
+        }
+
+        .seg-ctrl { background: #f0f2f5; padding: 3px; border-radius: 12px; display: inline-flex; gap: 2px; }
+        .dark .seg-ctrl { background: #0f172a; }
+        .seg-btn { padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; cursor: pointer; }
+        .seg-btn.active { background: white; color: #1a1a2e; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .dark .seg-btn.active { background: #334155; color: white; }
+        .input { width: 100%; padding: 0.875rem 1rem; background: #f0f2f5; border: 2px solid transparent; border-radius: 0.875rem; font-weight: 600; font-size: 0.875rem; outline: none; }
+        .shop-item.checked { opacity: 0.35; }
+        .shop-item.checked .item-name { text-decoration: line-through; }
+
+        /* Category Dropdown Styling */
+        .category-option { display: flex; align-items: center; gap: 8px; }
+        .category-option span { font-size: 14px; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<div class="app-shell bg-white min-h-screen lg:min-h-0">
+    <div class="desktop-sidebar hidden flex-col bg-white border-r border-gray-100 h-full overflow-hidden">
+        <div class="p-5 border-b border-gray-100 sticky-header">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center"><span class="material-symbols-rounded text-white text-lg">restaurant</span></div>
+                <h1 class="text-lg font-black tracking-tight">Kitchen Master</h1>
+            </div>
+        </div>
+        <nav class="flex-1 p-3">
+            <button onclick="switchPage('recipes')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 mb-1" id="nav-recipes"><span class="material-symbols-rounded">menu_book</span> Recipes</button>
+            <button onclick="switchPage('shopping')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 mb-1" id="nav-shopping"><span class="material-symbols-rounded">shopping_cart</span> Shopping List</button>
+            <button onclick="switchPage('pantry')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 mb-1" id="nav-pantry"><span class="material-symbols-rounded">kitchen</span> Pantry Staples</button>
+            <button onclick="switchPage('settings')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 mb-1" id="nav-settings"><span class="material-symbols-rounded">settings</span> Settings</button>
+        </nav>
+    </div>
+
+    <div class="main-content flex flex-col min-h-screen lg:min-h-0 pb-20 lg:pb-0">
+        <div id="page-recipes" class="page active flex-1">
+            <div class="sticky top-0 bg-white/95 backdrop-blur-lg z-30 border-b border-gray-100 px-4 pt-4 pb-3 lg:px-6 sticky-header">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xl font-black tracking-tight">Recipes</h2>
+                    <button onclick="openAddRecipe()" class="bg-brand-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg active:scale-95 transition">New Recipe</button>
+                </div>
+                <input id="searchBar" onkeyup="renderRecipes()" type="text" placeholder="Search recipes..." class="input">
+            </div>
+            <div class="flex-1 px-4 py-4 lg:px-6 overflow-y-auto" id="menuList"></div>
+        </div>
+
+        <div id="page-shopping" class="page flex-1">
+            <div class="sticky top-0 bg-white/95 backdrop-blur-lg z-30 border-b border-gray-100 px-4 pt-4 pb-3 lg:px-6 sticky-header">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xl font-black tracking-tight">Shopping List</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleStoreMode()" id="storeModeBtn" class="bg-gray-900 text-white px-3.5 py-2.5 rounded-xl font-bold text-[11px] flex items-center gap-2 transition-all"><span class="material-symbols-rounded text-base">storefront</span> Store</button>
+                        <button onclick="openSheet('shopActionsSheet')" class="bg-gray-100 text-gray-600 w-10 h-10 rounded-xl flex items-center justify-center"><span class="material-symbols-rounded">more_vert</span></button>
+                    </div>
+                </div>
+                <div class="seg-ctrl w-full">
+                    <button onclick="setSortMode('aisle')" class="seg-btn flex-1 active" id="sortAisleBtn">By Aisle</button>
+                    <button onclick="setSortMode('recipe')" class="seg-btn flex-1" id="sortRecipeBtn">By Recipe</button>
+                </div>
+            </div>
+            <div id="shopContent" class="flex-1 px-4 py-4 lg:px-6 overflow-y-auto"><div id="shoppingItems"></div></div>
+        </div>
+
+        <div id="page-pantry" class="page flex-1">
+            <div class="sticky top-0 bg-white/95 backdrop-blur-lg z-30 border-b border-gray-100 px-4 pt-4 pb-3 lg:px-6 sticky-header">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xl font-black tracking-tight">Pantry Staples</h2>
+                    <button onclick="openAddStaple()" class="bg-brand-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg active:scale-95 transition">Add Staple</button>
+                </div>
+            </div>
+            <div class="flex-1 px-4 py-4 lg:px-6 overflow-y-auto" id="pantryList"></div>
+        </div>
+
+        <div id="page-settings" class="page flex-1">
+            <div class="sticky top-0 bg-white/95 backdrop-blur-lg z-30 border-b border-gray-100 px-4 pt-4 pb-3 lg:px-6 sticky-header"><h2 class="text-xl font-black tracking-tight">Settings</h2></div>
+            <div class="p-4 space-y-4 max-w-md mx-auto">
+                <div class="card p-5 flex items-center justify-between">
+                    <div class="flex items-center gap-3"><span class="material-symbols-rounded text-brand-500">dark_mode</span><span class="font-bold">Dark Mode</span></div>
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" class="w-12 h-6 rounded-full bg-gray-200 p-1 transition-colors relative">
+                        <div class="w-4 h-4 bg-white rounded-full shadow transition-transform translate-x-0" id="darkToggleThumb"></div>
+                    </button>
+                </div>
+                <div class="card p-5 space-y-4">
+                    <div class="flex items-center gap-3 mb-2"><span class="material-symbols-rounded text-blue-500">cloud_sync</span><span class="font-bold">Cloud Sync</span></div>
+                    <input id="cloudKey" type="password" placeholder="Master Key" class="input">
+                    <input id="cloudBin" type="text" placeholder="Bin ID" class="input">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="pushToCloud()" id="pushBtn" class="bg-gray-900 text-white py-3 rounded-xl font-bold text-sm">Push</button>
+                        <button onclick="pullFromCloud()" class="bg-brand-500 text-white py-3 rounded-xl font-bold text-sm">Pull</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mobile-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-16 flex justify-around items-center z-50 lg:hidden sticky-header">
+        <button onclick="switchPage('recipes')" class="nav-item flex flex-col items-center flex-1" data-page="recipes"><span class="material-symbols-rounded">menu_book</span></button>
+        <button onclick="switchPage('shopping')" class="nav-item flex flex-col items-center flex-1" data-page="shopping"><span class="material-symbols-rounded">shopping_cart</span></button>
+        <button onclick="switchPage('pantry')" class="nav-item flex flex-col items-center flex-1" data-page="pantry"><span class="material-symbols-rounded">kitchen</span></button>
+        <button onclick="switchPage('settings')" class="nav-item flex flex-col items-center flex-1" data-page="settings"><span class="material-symbols-rounded">settings</span></button>
+    </nav>
+</div>
+
+<!-- Recipe Preview Tooltip -->
+<div id="recipe-tooltip" class="recipe-preview"></div>
+
+<div id="recipeSheet" class="sheet-overlay" onclick="closeSheet('recipeSheet')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sticky top-0 bg-white p-5 border-b border-gray-100 flex items-center justify-between z-10 sticky-header">
+            <h3 class="font-black text-lg" id="recipeSheetTitle">Recipe Details</h3>
+            <button onclick="closeSheet('recipeSheet')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><span class="material-symbols-rounded text-sm">close</span></button>
+        </div>
+        <div class="p-5 space-y-4">
+            <input id="mealName" type="text" placeholder="Recipe name" class="input">
+            <div id="ingInputs" class="space-y-2"></div>
+            <button onclick="addNewLine()" class="text-brand-600 font-bold text-xs flex items-center gap-1"><span class="material-symbols-rounded text-base">add_circle</span> Add Ingredient</button>
+            <div id="stepsInputs" class="space-y-2"></div>
+            <button onclick="addStepLine()" class="text-brand-600 font-bold text-xs flex items-center gap-1"><span class="material-symbols-rounded text-base">add_circle</span> Add Step</button>
+        </div>
+        <div class="p-5 border-t border-gray-100 sticky-header"><button onclick="processSave()" class="w-full bg-brand-500 text-white py-4 rounded-2xl font-black text-sm">Save Recipe</button></div>
+    </div>
+</div>
+
+<div id="shopActionsSheet" class="sheet-overlay" onclick="closeSheet('shopActionsSheet')">
+    <div class="sheet p-5 space-y-3" onclick="event.stopPropagation()">
+        <h3 class="font-black text-base mb-3">Shopping List Actions</h3>
+        <button onclick="clearCheckedItems(); closeSheet('shopActionsSheet');" class="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl font-bold text-left"><span class="material-symbols-rounded text-amber-500">playlist_remove</span> Clear Checked</button>
+        <button onclick="resetShoppingList(); closeSheet('shopActionsSheet');" class="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-xl font-bold text-left"><span class="material-symbols-rounded text-blue-500">restart_alt</span> Reset All</button>
+    </div>
+</div>
+
+<div id="stapleSheet" class="sheet-overlay" onclick="closeSheet('stapleSheet')">
+    <div class="sheet p-5 space-y-3" onclick="event.stopPropagation()">
+        <h3 class="font-black text-lg">Add Staple</h3>
+        <input id="stapleName" type="text" placeholder="Item name" class="input">
+        <div class="grid grid-cols-2 gap-3">
+            <input id="stapleQty" type="number" step="any" placeholder="Qty" value="1" class="input">
+            <select id="stapleCat" class="input">
+                <option value="Produce">🥦 Produce</option>
+                <option value="Meat">🥩 Meat</option>
+                <option value="Dairy" selected>🧀 Dairy</option>
+                <option value="Pantry">🥫 Pantry</option>
+                <option value="Frozen">🧊 Frozen</option>
+            </select>
+        </div>
+        <button onclick="saveStaple()" class="w-full bg-brand-500 text-white py-4 rounded-2xl font-black text-sm">Add Staple</button>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'KITCHEN_MASTER_V4.2';
+let recipes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY + '_INV')) || [];
+let cloudConfig = JSON.parse(localStorage.getItem(STORAGE_KEY + '_CLOUD')) || { key: '', bin: '' };
+let pantryStaples = JSON.parse(localStorage.getItem(STORAGE_KEY + '_PANTRY')) || [];
+let isDarkMode = localStorage.getItem(STORAGE_KEY + '_DARK') === 'true';
+
+let editingId = null, isStoreMode = false, sortMode = 'aisle';
+const catIcons = { "Produce": "🥦", "Meat": "🥩", "Dairy": "🧀", "Pantry": "🥫", "Frozen": "🧊", "General": "📦" };
+const unitOptions = ["pcs", "kgs", "g", "litres", "ml", "cups", "tbsp", "tsp", "packs"];
+
+function sync() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+    localStorage.setItem(STORAGE_KEY + '_INV', JSON.stringify(inventory));
+    localStorage.setItem(STORAGE_KEY + '_CLOUD', JSON.stringify(cloudConfig));
+    localStorage.setItem(STORAGE_KEY + '_PANTRY', JSON.stringify(pantryStaples));
+    localStorage.setItem(STORAGE_KEY + '_DARK', isDarkMode);
+    renderAll();
+}
+
+function toggleDarkMode() { isDarkMode = !isDarkMode; applyDarkMode(); sync(); }
+function applyDarkMode() {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    const thumb = document.getElementById('darkToggleThumb');
+    const btn = document.getElementById('darkModeBtn');
+    if (thumb) thumb.style.transform = isDarkMode ? 'translateX(24px)' : 'translateX(0)';
+    if (btn) btn.classList.toggle('bg-brand-500', isDarkMode);
+    if (btn) btn.classList.toggle('bg-gray-200', !isDarkMode);
+}
+
+function switchPage(p) {
+    document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+    document.getElementById('page-' + p).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('text-brand-500', n.dataset.page === p));
+    renderAll();
+}
+
+function openSheet(id) { document.getElementById(id).classList.add('open'); }
+function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+
+function renderAll() { renderRecipes(); renderShopping(); renderPantry(); }
+
+function renderRecipes() {
+    const search = (document.getElementById('searchBar')?.value || '').toLowerCase();
+    const filtered = recipes.filter(r => r.name.toLowerCase().includes(search));
+    document.getElementById('menuList').innerHTML = filtered.map(r => `
+        <div class="card mb-3 p-4 flex items-center justify-between ${r.selected ? 'card-selected' : ''}" 
+             onmouseenter="showRecipePreview(event, ${r.id})" 
+             onmouseleave="hideRecipePreview()"
+             onclick="toggleMeal(${r.id})">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl ${r.selected ? 'bg-brand-500' : 'bg-gray-100'} flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-rounded ${r.selected ? 'text-white' : 'text-gray-400'}">${r.selected ? 'check' : 'restaurant'}</span>
+                </div>
+                <p class="font-bold text-sm truncate">${r.name}</p>
+            </div>
+            <div class="flex gap-1" onclick="event.stopPropagation()">
+                <button onclick="editRecipe(${r.id})" class="p-2 text-gray-400"><span class="material-symbols-rounded">edit</span></button>
+                <button onclick="deleteMeal(${r.id})" class="p-2 text-red-400"><span class="material-symbols-rounded">delete</span></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showRecipePreview(event, id) {
+    const recipe = recipes.find(r => r.id === id);
+    if (!recipe || !recipe.list.length) return;
+    
+    const card = event.currentTarget;
+    const tooltip = document.getElementById('recipe-tooltip');
+    const rect = card.getBoundingClientRect();
+
+    let html = '<div class="recipe-preview-title">Ingredients:</div>';
+    recipe.list.forEach(item => {
+        html += `<div class="recipe-preview-item"><span>${item.name}</span><span class="text-gray-400">${item.qty} ${item.unit}</span></div>`;
+    });
+    
+    tooltip.innerHTML = html;
+
+    // Calculate position for the tooltip
+    let tooltipTop = rect.bottom + window.scrollY + 5; // by default, place below the card
+    if (tooltipTop + 300 > window.innerHeight) { 
+        // If there is not enough space below, position above
+        tooltipTop = rect.top + window.scrollY - 300 - 5;
+    }
+
+    tooltip.style.top = tooltipTop + 'px';
+    tooltip.style.left = (rect.left + window.scrollX) + 'px';
+    tooltip.style.display = 'block';
+}
+
+function hideRecipePreview() {
+    const tooltip = document.getElementById('recipe-tooltip');
+    tooltip.style.display = 'none';
+}
+
+function renderShopping() {
+    const shopDiv = document.getElementById('shoppingItems');
+    const selected = recipes.filter(r => r.selected);
+    const activeStaples = pantryStaples.filter(s => s.active);
+    
+    if (!selected.length && !activeStaples.length) {
+        shopDiv.innerHTML = `<p class="text-center py-10 text-gray-400 text-sm">Select recipes to build your list</p>`;
+        return;
+    }
+
+    let html = "";
+    if (sortMode === 'aisle') {
+        const totals = {};
+        [...selected.flatMap(r => r.list), ...activeStaples].forEach(i => {
+            const key = `${i.name}|${i.category}`;
+            if (!totals[key]) totals[key] = { ...i }; else totals[key].qty += i.qty;
+        });
+        const grouped = Object.values(totals).reduce((a, c) => { (a[c.category] = a[c.category] || []).push(c); return a; }, {});
+        
+        // Render with Category Headers
+        html = Object.keys(grouped).sort().map(cat => `
+            <div class="mb-5">
+                <h4 class="text-[11px] font-black uppercase text-gray-400 dark:text-gray-500 mb-2 px-1 tracking-wider">${catIcons[cat] || '📦'} ${cat}</h4>
+                ${grouped[cat].map(i => renderShopItem(i)).join('')}
+            </div>
+        `).join('');
+    } else {
+        selected.forEach(r => {
+            html += `<h4 class="text-[11px] font-black uppercase text-brand-600 mb-2 px-1">${r.name}</h4>`;
+            r.list.forEach(i => html += renderShopItem(i));
+        });
+        if(activeStaples.length) {
+            html += `<h4 class="text-[11px] font-black uppercase text-amber-600 mb-2 px-1">Pantry Staples</h4>`;
+            activeStaples.forEach(s => html += renderShopItem(s));
+        }
+    }
+    shopDiv.innerHTML = html;
+}
+
+function renderShopItem(i) {
+    const has = inventory.includes(i.name.toLowerCase());
+    return `<div onclick="toggleInv('${i.name.toLowerCase().replace(/'/g, "\\'")}')" class="shop-item card p-3.5 mb-2 flex items-center justify-between ${has ? 'checked' : ''}">
+        <div class="flex items-center gap-3">
+            <input type="checkbox" ${has ? 'checked' : ''} class="w-5 h-5 accent-brand-500 pointer-events-none">
+            <span class="item-name font-bold text-sm capitalize">${i.name}</span>
+        </div>
+        <span class="text-[10px] font-black bg-gray-900 text-white dark:bg-brand-500 px-2 py-1 rounded-lg">${i.qty} ${i.unit || 'pcs'}</span>
+    </div>`;
+}
+
+function renderPantry() {
+    document.getElementById('pantryList').innerHTML = pantryStaples.map((s, idx) => `
+        <div class="card p-4 mb-3 flex items-center justify-between">
+            <div class="flex items-center gap-4 flex-1">
+                <button onclick="toggleStaple(${idx})" class="w-10 h-10 rounded-xl ${s.active ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-400'} flex items-center justify-center flex-shrink-0"><span class="material-symbols-rounded">${s.active ? 'check' : 'close'}</span></button>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-sm capitalize">${s.name}</p>
+                    <p class="text-xs text-gray-400 mt-1"><span>${catIcons[s.category]}</span> ${s.category} • ${s.qty} ${s.unit}</p>
+                </div>
+            </div>
+            <button onclick="pantryStaples.splice(${idx},1); sync();" class="text-red-400 flex-shrink-0 ml-2"><span class="material-symbols-rounded">delete</span></button>
+        </div>
+    `).join('');
+}
+
+function addNewLine(n = "", q = "", u = "pcs", c = "General") {
+    const div = document.createElement('div');
+    div.className = "flex gap-2 p-2 bg-gray-50 rounded-xl items-center";
+    div.innerHTML = `
+        <input type="text" placeholder="Ingredient" value="${n}" class="i-val flex-[2] bg-transparent text-sm font-semibold outline-none">
+        <input type="number" step="any" placeholder="Qty" value="${q}" class="q-val w-12 text-center text-xs font-bold bg-white rounded-lg p-1">
+        <select class="u-val text-[10px] font-bold bg-white rounded-lg p-1 w-16">
+            ${unitOptions.map(opt => `<option value="${opt}" ${u === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+        </select>
+        <select class="c-val text-[11px] font-bold bg-white rounded-lg p-1 w-auto">
+            ${Object.keys(catIcons).map(k => `<option value="${k}" ${c === k ? 'selected' : ''}>${catIcons[k]} ${k}</option>`).join('')}
+        </select>
+    `;
+    document.getElementById('ingInputs').appendChild(div);
+}
+
+function addStepLine(text = "") {
+    const div = document.createElement('div');
+    div.className = "flex gap-2 items-start";
+    div.innerHTML = `<textarea class="step-val flex-1 bg-gray-50 rounded-xl p-3 text-sm font-medium outline-none" rows="2" placeholder="Describe the step...">${text}</textarea>`;
+    document.getElementById('stepsInputs').appendChild(div);
+}
+
+function processSave() {
+    const name = document.getElementById('mealName').value.trim();
+    if (!name) return;
+    let list = [], steps = [];
+    document.querySelectorAll('#ingInputs > div').forEach(r => {
+        const item = r.querySelector('.i-val').value.trim();
+        if (item) list.push({ 
+            name: item.toLowerCase(), 
+            qty: parseFloat(r.querySelector('.q-val').value) || 1, 
+            unit: r.querySelector('.u-val').value, 
+            category: r.querySelector('.c-val').value 
+        });
+    });
+    document.querySelectorAll('#stepsInputs textarea').forEach(t => { if(t.value.trim()) steps.push(t.value.trim()); });
+    if (editingId) {
+        const idx = recipes.findIndex(x => x.id === editingId);
+        recipes[idx] = { ...recipes[idx], name, list, steps };
+    } else {
+        recipes.push({ id: Date.now(), name, list, steps, selected: false });
+    }
+    closeSheet('recipeSheet'); sync();
+}
+
+function editRecipe(id) {
+    const r = recipes.find(x => x.id === id); editingId = id;
+    document.getElementById('mealName').value = r.name;
+    document.getElementById('ingInputs').innerHTML = '';
+    document.getElementById('stepsInputs').innerHTML = '';
+    r.list.forEach(i => addNewLine(i.name, i.qty, i.unit, i.category));
+    (r.steps || []).forEach(s => addStepLine(s));
+    openSheet('recipeSheet');
+}
+
+function openAddRecipe() { editingId = null; document.getElementById('mealName').value = ''; document.getElementById('ingInputs').innerHTML = ''; document.getElementById('stepsInputs').innerHTML = ''; addNewLine(); openSheet('recipeSheet'); }
+function toggleMeal(id) { const r = recipes.find(x => x.id === id); r.selected = !r.selected; sync(); }
+function toggleInv(n) { if (inventory.includes(n)) inventory = inventory.filter(x => x !== n); else inventory.push(n); sync(); }
+function deleteMeal(id) { if(confirm("Delete recipe?")) { recipes = recipes.filter(r => r.id !== id); sync(); } }
+
+function toggleStoreMode() { 
+    isStoreMode = !isStoreMode; 
+    const shopContent = document.getElementById('shopContent');
+    shopContent.parentElement.classList.toggle('store-mode-active', isStoreMode);
+    document.getElementById('storeModeBtn').classList.toggle('bg-brand-500', isStoreMode); 
+    renderShopping(); 
+}
+
+function setSortMode(m) { sortMode = m; document.getElementById('sortAisleBtn').classList.toggle('active', m==='aisle'); document.getElementById('sortRecipeBtn').classList.toggle('active', m==='recipe'); renderShopping(); }
+
+function openAddStaple() { openSheet('stapleSheet'); }
+function saveStaple() {
+    const name = document.getElementById('stapleName').value;
+    const qty = parseFloat(document.getElementById('stapleQty').value) || 1;
+    const category = document.getElementById('stapleCat').value;
+    if(name) pantryStaples.push({name: name.toLowerCase(), qty, unit: 'pcs', category, active: true});
+    closeSheet('stapleSheet'); sync();
+}
+function toggleStaple(idx) { pantryStaples[idx].active = !pantryStaples[idx].active; sync(); }
+function clearCheckedItems() {
+    const checked = [...inventory];
+    recipes.forEach(r => { if(r.selected) r.list = r.list.filter(i => !checked.includes(i.name.toLowerCase())); });
+    inventory = []; sync();
+}
+function resetShoppingList() { recipes.forEach(r => r.selected = false); inventory = []; sync(); }
+
+async function pushToCloud() {
+    cloudConfig.key = document.getElementById('cloudKey').value;
+    cloudConfig.bin = document.getElementById('cloudBin').value;
+    if(!cloudConfig.key || !cloudConfig.bin) return alert("Setup config");
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.bin}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': cloudConfig.key },
+            body: JSON.stringify({ recipes, inventory, pantryStaples })
+        });
+        alert("Cloud Sync Successful");
+    } catch (e) { alert("Sync Failed"); }
+    sync();
+}
+
+async function pullFromCloud() {
+    if(!cloudConfig.key || !cloudConfig.bin) return;
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.bin}/latest`, { headers: { 'X-Master-Key': cloudConfig.key } });
+        const data = await res.json();
+        recipes = data.record.recipes || []; inventory = data.record.inventory || []; pantryStaples = data.record.pantryStaples || [];
+        sync();
+    } catch (e) { alert("Download Failed"); }
+}
+
+window.onload = () => {
+    document.getElementById('cloudKey').value = cloudConfig.key;
+    document.getElementById('cloudBin').value = cloudConfig.bin;
+    applyDarkMode();
+    renderAll();
+}
+</script>
+</body>
+</html>
