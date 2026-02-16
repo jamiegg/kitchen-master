@@ -16,6 +16,33 @@
                     fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
                     colors: {
                         brand: { 50: '#eefbf5', 100: '#d6f5e6', 200: '#b0ead1', 300: '#7cd9b6', 400: '#48c196', 500: '#25a67a', 600: '#178762', 700: '#136c51', 800: '#125642', 900: '#104737', 950: '#07281f' }
+                    async function autoPush() {
+    if (!cloudConfig.key || !cloudConfig.bin) return;
+    
+    const indicator = document.getElementById('syncIndicator');
+    if (indicator) {
+        indicator.classList.add('syncing');
+        indicator.innerText = "Saving to Cloud...";
+    }
+
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.bin}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-Master-Key': cloudConfig.key 
+            },
+            body: JSON.stringify({ recipes, inventory, memory })
+        });
+        if (indicator) {
+            indicator.innerText = "Cloud Synced";
+            setTimeout(() => { indicator.innerText = ""; }, 2000);
+        }
+    } catch (e) { 
+        if (indicator) indicator.innerText = "Sync Error";
+        console.error("Auto-push failed:", e); 
+    }
+}                   
                     }
                 }
             }
@@ -119,6 +146,7 @@
                     <span class="material-symbols-rounded text-white text-lg">restaurant</span>
                 </div>
                 <h1 class="text-lg font-black tracking-tight">Kitchen Master</h1>
+                <div id="syncIndicator" style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #14b893; height: 10px;"></div>
             </div>
         </div>
         <nav class="flex-1 overflow-y-auto p-3">
@@ -247,7 +275,7 @@
                             </div>
                             <div>
                                 <h3 class="font-bold text-sm">Kitchen Master</h3>
-                                <p class="text-[11px] text-gray-400">Version 5.0 &middot; Meal Planning Made Easy</p>
+                                <p class="text-[11px] text-gray-400">Version 0.1 &middot; Meal Planning Made Easy</p>
                             </div>
                         </div>
                     </div>
@@ -397,15 +425,17 @@ let cookingStep = 0;
 const catIcons = { "Produce": "🥦", "Meat": "🥩", "Dairy": "🧀", "Pantry": "🥫", "Frozen": "🧊", "Bakery": "🍞", "General": "📦" };
 
 // ==================== SYNC ====================
-function sync() {
+function sync(skipCloud = false) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
     localStorage.setItem(STORAGE_KEY + '_INV', JSON.stringify(inventory));
     localStorage.setItem(STORAGE_KEY + '_MEM', JSON.stringify(memory));
     localStorage.setItem(STORAGE_KEY + '_CLOUD', JSON.stringify(cloudConfig));
-    localStorage.setItem(STORAGE_KEY + '_PANTRY', JSON.stringify(pantryStaples));
-    renderAll();
+    render();
+    
+    // Only push to cloud if this sync was triggered by a user action
+    if (!skipCloud) autoPush();
 }
-
+    
 // ==================== CLOUD ====================
 async function pushToCloud() {
     if (!cloudConfig.key || !cloudConfig.bin) return alert("Set up your Cloud Key and Bin ID in Settings first.");
@@ -865,9 +895,21 @@ function deleteStaple(idx) {
 window.onload = () => {
     document.getElementById('cloudKey').value = cloudConfig.key;
     document.getElementById('cloudBin').value = cloudConfig.bin;
+    
+    render(); 
+    addNewLine();
+
+    // Automatically pull the latest data when you open the app
+    if (cloudConfig.key && cloudConfig.bin) {
+        pullFromCloud(true); // 'true' tells the function not to show an alert
+    }
+};window.onload = () => {
+    document.getElementById('cloudKey').value = cloudConfig.key;
+    document.getElementById('cloudBin').value = cloudConfig.bin;
     renderAll();
     switchPage('recipes');
 }
 </script>
 </body>
 </html>
+
